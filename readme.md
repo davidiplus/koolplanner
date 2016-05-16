@@ -12,14 +12,14 @@ It is based on the module concept of NodeJS
 
 
 ```
-bash
+
 npm install
 ```
 
 ## Running
 
 ```
-bash
+
 cd [bot-folder]
 token=[bot-token] node index.js
 ```
@@ -27,7 +27,7 @@ token=[bot-token] node index.js
 ## Running as a Service using 
 
 ```
-bash
+
 cd [bot-folder]
 oken=[bot-token] pm2 stop index.js
 ```
