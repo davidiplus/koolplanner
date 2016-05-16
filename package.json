@@ -4,7 +4,8 @@
   "description": "this is the axlot botindex.js",
   "main": "index.js",
   "dependencies": {
-    "botkit": "^0.1.1"
+    "botkit": "^0.1.1",
+    "botkit-storage-firebase": "^1.0.0"
   },
   "devDependencies": {},
   "scripts": {
