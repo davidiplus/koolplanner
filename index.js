@@ -20,6 +20,8 @@ var bot = controller.spawn({
 var greetingBot = require('./brain/greetings.js');
 greetingBot.init(controller); 
 
+var events = require('./brain/events.js');
+events.init(controller);
 
 function formatUptime(uptime) {
     var unit = 'second';
