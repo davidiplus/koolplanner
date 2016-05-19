@@ -7,9 +7,11 @@ if (!process.env.token) {
 var Botkit = require('./node_modules/botkit/lib/Botkit.js');
 var os = require('os');
 
+firebaseStorage = require('./brain/memory.js')({firebase_uri: 'https://thekoolplanner.firebaseio.com/'});
+
 var controller = Botkit.slackbot({
     debug: true,
-    json_file_store: "./brain/memory"
+    storage: firebaseStorage
 });
 
 var bot = controller.spawn({

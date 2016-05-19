@@ -70,14 +70,15 @@ module.exports.init = function(controller) {
 
                     });
                     //Code to create and store the new event
-                    controller.storage.teams.all(function(err, all_team_data) {
+                    controller.storage.events.all(function(err, all_team_data) {
                         var newId = all_team_data.length + 1,
                             event = new Event(eTitle, eDescription, eDateTime, eLocation);
                         //Botkit Method To Storage
                         if(!eventId) {
-                            controller.storage.teams.save({id: 'event_' + newId, event: event}, function(err) {});
+                            controller.storage.events.save({id: 'event_' + newId, event_data: event}, function(err) {});
+
                         } else {
-                            controller.storage.teams.save({id: eventId, event: event}, function(err) {});
+                            controller.storage.events.save({id: eventId, event_data: event}, function(err) {});
                         }
 
                     });
@@ -96,5 +97,22 @@ module.exports.init = function(controller) {
         var eventId = message.match[1];
         //Start Conversation
         conversation(bot, message, eventId);
+    });
+
+    controller.hears('attend (.*)',['direct_message','direct_mention'],function(bot,message) {
+        var eventId = message.match[1];
+        var user = message.user;
+
+        //Start Conversation
+
+
+        controller.storage.rsvp.save({id: 'event_' + eventId, attend: [user]}, function(err) {});
+        //controller.storage.rsvp.save({id: 'event_' + eventId, attend: [user]}, function(err) {});
+
+
+        controller.storage.rsvp.get(eventId, function(err, attend_data) {
+            console.log(attend_data);
+        });
+
     });
 };

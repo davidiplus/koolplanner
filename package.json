@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "botkit": "^0.1.1",
-    "botkit-storage-firebase": "^1.0.0"
+    "firebase": "^2.3.2"
   },
   "devDependencies": {},
   "scripts": {
