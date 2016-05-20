@@ -100,18 +100,19 @@ module.exports.init = function(controller) {
     });
 
     controller.hears('attend (.*)',['direct_message','direct_mention'],function(bot,message) {
+        //TODO: add a validation to check if received event exists.
         var eventId = message.match[1];
+
         var user = message.user;
 
-        //Start Conversation
+        controller.storage.rsvp.get('event_' + eventId, function(err, attend_data) {
 
-
-        controller.storage.rsvp.save({id: 'event_' + eventId, attend: [user]}, function(err) {});
-        //controller.storage.rsvp.save({id: 'event_' + eventId, attend: [user]}, function(err) {});
-
-
-        controller.storage.rsvp.get(eventId, function(err, attend_data) {
-            console.log(attend_data);
+            var attend = [];
+            if (attend_data != null) {
+                attend = attend_data.attend;
+            }
+            attend[user] = true;
+            controller.storage.rsvp.save({id: 'event_' + eventId, attend: attend}, function(err) {});
         });
 
     });
