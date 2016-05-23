@@ -7,7 +7,7 @@ module.exports.init = function(controller) {
         this.dateTime = dateTime;
         this.location = location;
     };
-
+    //Creation, Editing and Attend Conversation
     var conversation = function (bot, message, eventId) {
         //Start Conversation
         bot.startConversation(message, function(err, convo) {
@@ -21,13 +21,26 @@ module.exports.init = function(controller) {
                 convo.next();
             }, {'key': 'description'});
             //Get Event Date And Time
-            convo.ask('When will take place (format: mm/dd/yyyy hh:mm)?', function(response, convo) {
-                convo.next();
-            }, {'key': 'dateTime'});
-            //Get Event Location
-            convo.ask('Where will it take place?', function(response, convo) {
-                convo.next();
-            }, {'key': 'location'});
+            convo.ask('When will take place (format: mm/dd/yyyy hh:mm)?', [
+                {
+                    //Test The Date Against This RegExp To Match The Format
+                    pattern: new RegExp("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{1,4} [0-9]{1,2}:[0-9]{1,2}$", "g"),
+                    callback: function(response, convo) {
+                        //Get Event Location
+                        convo.ask('Where will it take place?', function(response, convo) {
+                            convo.next();
+                        }, {'key': 'location'});
+                        convo.next();
+                    }
+                },
+                {
+                    default: true,
+                    callback: function(response, convo) {
+                        convo.repeat();
+                        convo.next();
+                    }
+                }
+            ], {'key': 'dateTime'});
             //End Conversation
             convo.on('end', function(convo) {
                 if (convo.status == 'completed') {
@@ -88,6 +101,42 @@ module.exports.init = function(controller) {
             });
         });
     };
+    //Listing Conversation
+    var listing = function(bot, message, eventId) {
+        //Start Conversation
+        bot.startConversation(message, function(err, convo) {
+            //Get List Of Attenddes
+            controller.storage.rsvp.all(function(err, all_attend_data) {
+                var length = all_attend_data.length,
+                    attendees;
+                //Iterate Over Event's Attenddes
+                for(var i=0; i<length; i++) {
+                    if(all_attend_data[i].id == eventId) {
+                        //Get Event Attenddes
+                        attendees = all_attend_data[i].attend;
+                        break;
+                    }
+                }
+                //Get Event Title
+                var reply_with_attachments = {
+                    'attachments': [
+                        {
+                            'title': 'Here are the attendees for ' + eventId,
+                            'color': '#7CD197'
+                        }
+                    ]
+                };
+                bot.reply(message, reply_with_attachments);
+                //Iterate Over Attenddes Obj And Get User's Names
+                for(var prop in attendees){
+                    bot.api.users.info({user: prop}, function(err, user) {
+                        convo.say(user.user.real_name);
+                    });
+                }
+            });
+        });
+    };
+
     //Conversation Controller "NEW EVENT"
     controller.hears('new event',['direct_message','direct_mention'],function(bot,message) {
         conversation(bot, message, false);
@@ -98,22 +147,30 @@ module.exports.init = function(controller) {
         //Start Conversation
         conversation(bot, message, eventId);
     });
-
+    //Conversation Controller "ATTEND EVENT"
     controller.hears('attend (.*)',['direct_message','direct_mention'],function(bot,message) {
         //TODO: add a validation to check if received event exists.
         var eventId = message.match[1];
-
+        //Get User
         var user = message.user;
-
+        //Get Attenddes List
         controller.storage.rsvp.get('event_' + eventId, function(err, attend_data) {
-
-            var attend = [];
-            if (attend_data != null) {
+            console.log(attend_data);
+            var attend = {};
+            //Check If Attend's Already Exists
+            if (attend_data != null && typeof attend_data.attend != "undefined") {
                 attend = attend_data.attend;
             }
             attend[user] = true;
-            controller.storage.rsvp.save({id: 'event_' + eventId, attend: attend}, function(err) {});
+            //Save Attend
+            controller.storage.rsvp.save({id: 'event_' + eventId, attend:attend}, function(err) {});
         });
 
+    });
+    //Conversation Controller "LIST ATTENDS"
+    controller.hears('list (.*)',['direct_message','direct_mention'],function(bot,message) {
+        var eventId = message.match[1];
+        //Start Conversation
+        listing(bot, message, eventId);
     });
 };
