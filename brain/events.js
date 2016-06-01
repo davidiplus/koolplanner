@@ -1,7 +1,6 @@
 module.exports.init = function(controller) {
-
     //Alert Attenddes Users
-    function alertAttendees(customMessage, eventId) {
+    function alertAttendees(bot, convo, customMessage, eventId) {
         controller.storage.rsvp.all(function(err, all_attend_data) {
             var length = all_attend_data.length,
                 attendees;
@@ -14,19 +13,23 @@ module.exports.init = function(controller) {
                 }
             }
             //Iterate Over Attenddes Obj And Get User's Names
-            for(var prop in attendees){
-                bot.api.users.info({user: prop}, function(err, user) {
-                    convo.say('Hey ' + user.user.real_name + '!\n' + customMessage);
+            for(var userID in attendees){
+                bot.startPrivateConversation({user: userID}, function(err, convo){
+                    console.log(convo);
+                    bot.api.users.info({user: convo.source_message.user}, function(err, user) {
+                        convo.say('Hey ' + user.user.real_name + '!\n' + customMessage);
+                    });
                 });
+                convo.next();
             }
         });
     }
-
     //Event Constructor
-    var Event = function(name, description, dateTime, location, mTimeStamp, mChannel) {
+    var Event = function(name, description, date, time, location, mTimeStamp, mChannel) {
         this.title = name;
         this.description = description;
-        this.dateTime = dateTime;
+        this.date = date;
+        this.time = time;
         this.location = location;
         this.mTimeStamp = mTimeStamp;
         this.mChannel = mChannel;
@@ -45,10 +48,11 @@ module.exports.init = function(controller) {
                 convo.next();
             }, {'key': 'description'});
             //Get Event Date And Time
+            var re = '(0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])[- /.](19|20)\\\d\\\d ([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]';
             convo.ask('When will take place (format: mm/dd/yyyy hh:mm)?', [
                 {
                     //Test The Date Against This RegExp To Match The Format
-                    pattern: new RegExp("^[0-9]{1,2}/[0-9]{1,2}/[0-9]{1,4} [0-9]{1,2}:[0-9]{1,2}$", "g"),
+                    pattern: new RegExp(re, "g"),
                     callback: function(response, convo) {
                         //Get Event Location
                         convo.ask('Where will it take place?', function(response, convo) {
@@ -65,16 +69,17 @@ module.exports.init = function(controller) {
                     }
                 }
             ], {'key': 'dateTime'});
+            //Send Reactions
             //End Conversation
             convo.on('end', function(convo) {
                 if (convo.status == 'completed') {
                     //Create Temp Var's
                     var eTitle = convo.extractResponse('title'),
                         eDescription = convo.extractResponse('description'),
-                        eDateTime = convo.extractResponse('dateTime'),
                         eLocation = convo.extractResponse('location'),
-                        createdEventMsg = 'Awesome! Your event ' + eTitle + ' is planned!\n' + eDescription + '\nIt will take place in ' + eDateTime + '\nI will communicate this to your team on #Events.\n Cheers!';
-
+                        eDate = convo.extractResponse('dateTime').replace(/ [0-9]{2}:[0-9]{2}/, ''),
+                        eTime = convo.extractResponse('dateTime').replace(/[0-9]{2}\/[0-9]{2}\/[0-9]{4} /, ''),
+                        createdEventMsg = 'Awesome! Your event ' + eTitle + ' is planned!\n' + eDescription + '\nIt will take place in ' + eDate + ' ' + eTime + '\nI will communicate this to your team on #Events.\n Cheers!';
                     //New Event Message
                     bot.reply(message, createdEventMsg, function(err,response) {
                         //Broadcast Event
@@ -86,7 +91,6 @@ module.exports.init = function(controller) {
                             * CRON PARA SALVAR CADA TANTO LAS REACTIONS Y TAMBIEN HAY QUE SALVAR
                             * LOS DATOS DE LOS REACTIONS EN EL EVENTO
                             * */
-                            //Send Reactions
                             bot.api.reactions.add({
                                 timestamp: message.ts,
                                 channel: message.channel,
@@ -114,7 +118,7 @@ module.exports.init = function(controller) {
                     //Code to create and store the new event
                     controller.storage.events.all(function(err, all_team_data) {
                         var newId = all_team_data.length + 1,
-                            event = new Event(eTitle, eDescription, eDateTime, eLocation, message.ts, message.channel);
+                            event = new Event(eTitle, eDescription, eDate, eTime, eLocation, message.ts, message.channel);
                         //Botkit Method To Storage
                         if(!eventId) {
                             controller.storage.events.save({id: 'event_' + newId, event_data: event}, function(err) {});
@@ -133,36 +137,40 @@ module.exports.init = function(controller) {
     var listing = function(bot, message, eventId) {
         //Start Conversation
         bot.startConversation(message, function(err, convo) {
-            //Get List Of Attenddes
-            controller.storage.rsvp.all(function(err, all_attend_data) {
-                var length = all_attend_data.length,
-                    attendees;
-                //Get Event Title
-                var reply_with_attachments = {
-                    'attachments': [
-                        {
-                            'title': 'Here are the attendees for ' + eventId,
-                            'color': '#7CD197'
-                        }
-                    ]
-                };
-                bot.reply(message, reply_with_attachments);
-                //Iterate Over Event's Attenddes
-                for(var i=0; i<length; i++) {
-                    if(all_attend_data[i].id == eventId) {
-                        //Get Event Attenddes
-                        attendees = all_attend_data[i].attend;
-                        break;
+            controller.storage.rsvp.get(eventId, function(err, attend_data) {
+                if(attend_data == null) {
+                    //Reply
+                    var reply_with_attachments = {
+                        'attachments': [
+                            {
+                                'title': 'There is no attendees for ' + eventId,
+                                'color': '#7CD197'
+                            }
+                        ]
+                    };
+                    bot.reply(message, reply_with_attachments);
+                    convo.stop();
+                } else {
+                    //Reply
+                    console.log(attend_data);
+                    var reply_with_attachments = {
+                        'attachments': [
+                            {
+                                'title': 'Here are the attendees for ' + eventId,
+                                'color': '#7CD197'
+                            }
+                        ]
+                    };
+                    bot.reply(message, reply_with_attachments);
+                    //Iterate Over Attend Data
+                    for(var prop in attend_data.attend){
+                        bot.api.users.info({user: prop}, function(err, user) {
+                            convo.say(user.user.real_name);
+                        });
                     }
-                }
-                //Iterate Over Attenddes Obj And Get User's Names
-                for(var prop in attendees){
-                    bot.api.users.info({user: prop}, function(err, user) {
-                        convo.say(user.user.real_name);
-                    });
+                    convo.next();
                 }
             });
-            convo.stop();
         });
     };
     //Listing Events
@@ -181,7 +189,7 @@ module.exports.init = function(controller) {
                 var eventsLength = all_events_data.length;
                 futureEvents = [];
                 for(var i=0;i<eventsLength;i++) {
-                    var eventDate = all_events_data[i].event_data.dateTime.replace(/( )[0-9]{2}:[0-9]{2}/g, '');
+                    var eventDate = all_events_data[i].event_data.date;
                     //Push Future Events Into List
                     if(new Date(eventDate) > new Date(formatDate)) {
                         futureEvents.push(all_events_data[i]);
@@ -208,7 +216,12 @@ module.exports.init = function(controller) {
                                     "fields": [
                                         {
                                             "title": 'Date',
-                                            "value": futureEvents[j].event_data.dateTime,
+                                            "value": futureEvents[j].event_data.date,
+                                            "short": true
+                                        },
+                                        {
+                                            "title": 'Time',
+                                            "value": futureEvents[j].event_data.time + 'hs',
                                             "short": true
                                         },
                                         {
@@ -230,7 +243,7 @@ module.exports.init = function(controller) {
         });
     };
     //Notify Upcoming Events
-    var notifyUpcoming = function(bot, message) {
+    var notifyUpcoming = function(bot, message, convo) {
         //Get Actual Date
         var date = new Date(),
             day = date.getDate(),
@@ -242,26 +255,29 @@ module.exports.init = function(controller) {
         controller.storage.events.all(function(err, all_events_data) {
             var length = all_events_data.length;
             for(var i=0;i<length;i++) {
-                var eHour = all_events_data[i].event_data.dateTime.replace(/[0-9]{2}\/[0-9]{2}\/[0-9]{4} /, ''),
-                    eDate = all_events_data[i].event_data.dateTime.replace(/ [0-9]{2}:[0-9]{2}/, ''),
+                var eHour = all_events_data[i].event_data.time,
+                    eDate = all_events_data[i].event_data.date,
                     todayFormatted = new Date(today),
                     dateFormatted =  new Date(eDate);
                 //Compare Year And Month
                 if((todayFormatted.getFullYear() == dateFormatted.getFullYear()) && (todayFormatted.getMonth()+1 == dateFormatted.getMonth()+1)) {
-                    var daysLeft = dateFormatted.getDate() - todayFormatted.getDate();
+                    //var daysLeft = dateFormatted.getDate() - todayFormatted.getDate();
+                    var daysLeft = 7;
                     //If *daysLeft results negative it means that the event already past(ex: yesterday).
                     switch (daysLeft) {
                         case 7:
                             //Code to notify users
-                            console.log('Falta una semana para este evento');
+                            alertAttendees(bot, convo, 'The event "' + all_events_data[i].event_data.title + '" is next week!\nIt will take place on ' + all_events_data[i].event_data.date + ' ' + all_events_data[i].event_data.time + 'hs, at ' + all_events_data[i].event_data.location, all_events_data[i].id);
                             break;
                         case 1:
-                            alertAttendees('Falta una hora para el evento', all_events_data[i].id);
                             eHour = eHour.replace(':','');
                             tHour = tHour.replace(':','');
-                            var timeLeft = parseInt(parseFloat(eHour) - parseFloat(tHour));
+                            //var timeLeft = parseInt(parseFloat(eHour) - parseFloat(tHour));
+                            var timeLeft = 100;
                             if(timeLeft == 100) {
-                                console.log('Falta una hora para este evento');
+                                alertAttendees(bot, convo, 'Just a little reminder.\nThe event "' + all_events_data[i].event_data.title + '" starts in an hour!\nHave fun!!!', all_events_data[i].id);
+                            } else {
+                                alertAttendees(bot, convo, 'Ready for tomorrow?\n"' + all_events_data[i].event_data.title + '" starts on ' + all_events_data[i].event_data.date + ' ' + all_events_data[i].event_data.time + 'hs', all_events_data[i].id);
                             }
                             break;
                     }
@@ -270,7 +286,6 @@ module.exports.init = function(controller) {
         });
 
     };
-
     //Conversation Controller "NEW EVENT"
     controller.hears('new event',['direct_message','direct_mention'],function(bot,message) {
         conversation(bot, message, false);
@@ -283,23 +298,34 @@ module.exports.init = function(controller) {
     });
     //Conversation Controller "ATTEND EVENT"
     controller.hears('attend (.*)',['direct_message','direct_mention'],function(bot,message) {
-        //TODO: add a validation to check if received event exists.
-        var eventId = message.match[1];
-        //Get User
-        var user = message.user;
-        //Get Attenddes List
-        controller.storage.rsvp.get('event_' + eventId, function(err, attend_data) {
-            console.log(attend_data);
-            var attend = {};
-            //Check If Attend's Already Exists
-            if (attend_data != null && typeof attend_data.attend != "undefined") {
-                attend = attend_data.attend;
+        //Get Event Id
+        var eventId = message.match[1].replace(/\$|#|\.|\[|]/g,'');
+        //Check If Event Exist
+        controller.storage.events.get('event_' + eventId, function(err, event_data){
+            if(event_data == null) {
+                bot.startConversation(message, function(err, convo) {
+                    bot.api.users.info({user: message.user}, function(err, user) {
+                        convo.say('Hey, ' + user.user.real_name + ' there is no event with that ID!');
+                    });
+                    convo.next();
+                });
+            } else {
+                //Get User
+                var user = message.user;
+                //Get Attenddes List
+                controller.storage.rsvp.get('event_' + eventId, function(err, attend_data) {
+                    console.log(attend_data);
+                    var attend = {};
+                    //Check If Attend's Already Exists
+                    if (attend_data != null && typeof attend_data.attend != "undefined") {
+                        attend = attend_data.attend;
+                    }
+                    attend[user] = true;
+                    //Save Attend
+                    controller.storage.rsvp.save({id: 'event_' + eventId, attend:attend}, function(err) {});
+                });
             }
-            attend[user] = true;
-            //Save Attend
-            controller.storage.rsvp.save({id: 'event_' + eventId, attend:attend}, function(err) {});
         });
-
     });
     //Conversation Controller "LIST ATTENDS"
     controller.hears('list (.*)',['direct_message','direct_mention'],function(bot,message) {
@@ -330,6 +356,8 @@ module.exports.init = function(controller) {
     });
     //Scheduled Function To Notify Users For An Upcoming Event
     controller.hears('notify',['direct_message','direct_mention'],function(bot,message) {
-        notifyUpcoming(bot, message);
+        bot.startConversation(message, function(err, convo) {
+            notifyUpcoming(bot, message, convo);
+        });
     });
 };
