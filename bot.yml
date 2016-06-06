@@ -1,7 +1,5 @@
 name: KoolPlanner Bot
 description: A bot that helps in creating events
-avatar: images/avatar.jpg
-background: images/background.png
 config:
   - name: token
     friendly_name: token
