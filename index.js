@@ -14,6 +14,8 @@ var controller = Botkit.slackbot({
     storage: firebaseStorage
 });
 
+var beepboop = BeepBoop.start(controller);
+
 var bot = controller.spawn({
     token: process.env.token
 }).startRTM();

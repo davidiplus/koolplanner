@@ -1,5 +1,5 @@
-name: KoolPlanner Bot
-description: A bot that helps in creating events
+name: KoolPlanner
+description: Easily plan small company events
 config:
   - name: token
     friendly_name: token

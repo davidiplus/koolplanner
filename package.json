@@ -4,6 +4,7 @@
   "description": "this is the axlot botindex.js",
   "main": "index.js",
   "dependencies": {
+    "beepboop-botkit": "^1.4.0",
     "botkit": "^0.1.1",
     "firebase": "^2.3.2"
   },
