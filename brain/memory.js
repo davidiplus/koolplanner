@@ -15,9 +15,13 @@ module.exports = function(config) {
     var rootRef = new Firebase(config.firebase_uri),
         teamsRef = rootRef.child('teams'),
         usersRef = rootRef.child('users'),
-        channelsRef = rootRef.child('channels');
-        eventsRef = rootRef.child('events');
-        rsvpRef = rootRef.child('rsvp');
+        channelsRef = rootRef.child('channels'),
+        eventsRef = rootRef.child('events'),
+        rsvpRef = rootRef.child('rsvp'),
+        attendRef = rsvpRef.child('attend'),
+        maybeRef = rsvpRef.child('maybe'),
+        noAttendRef = rsvpRef.child('noAttend');
+
 
     return {
         teams: {
@@ -44,6 +48,21 @@ module.exports = function(config) {
             get: get(rsvpRef),
             save: save(rsvpRef),
             all: all(rsvpRef)
+        },
+        attend: {
+            get: get(attendRef),
+            save: save(attendRef),
+            all: all(attendRef)
+        },
+        maybe: {
+            get: get(maybeRef),
+            save: save(maybeRef),
+            all: all(maybeRef)
+        },
+        noAttend: {
+            get: get(noAttendRef),
+            save: save(noAttendRef),
+            all: all(noAttendRef)
         }
     };
 };
