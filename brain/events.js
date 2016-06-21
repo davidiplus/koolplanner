@@ -535,7 +535,7 @@ module.exports.init = function(controller) {
                     bot.startConversation(message, function(err,convo) {
                         bot.say(
                             {
-                                text: 'Here are the are the upcoming events for your team:\n',
+                                text: 'Here attendre the are the upcoming events for your team:\n',
                                 channel: message.channel
                             }
                         );
@@ -755,7 +755,7 @@ module.exports.init = function(controller) {
         });
     });
     //Event "JOIN"
-    controller.on('channel_joined',function(bot,message) {
+    controller.on('team_join',function(bot,message) {
         //Onboarding Message Here
         bot.api.chat.postMessage({
             "text": "Hey there!:wave: I’m your KoolPlanner, your event planning assistant. I’m here to help you plan events without hassle. :spiral_calendar_pad:",
@@ -812,15 +812,15 @@ module.exports.notify = function(controller, bot, teamID) {
         controller.storage.attend.get(eventId, function(err, attend_data) {
             for (var userId in attend_data.attend){
                 if (attend_data.attend[userId] == true) {
+                    //var capturedUserId = userId;
                     //Get The Actual User Id
-                    bot.api.im.open({user: userId, return_im: true}, function (err, response) {
+                    bot.api.im.open({user: userId}, function (err, response) {
                         var capturedUserId = userId;
                         if (err) {
                             return console.log(err)
                         }
-                        var dmChannel = response.channel.id,
-                            dmUser = response.channel.user;
-                        bot.say({channel: dmChannel, text: 'Hey, ' + '<@' + dmUser + '>. ' + customMessage});
+                        var dmChannel = response.channel.id;
+                        bot.say({channel: dmChannel, text: 'Hey, ' + capturedUserId + '<@' + capturedUserId + '>. ' + customMessage});
                     });
                 }
             }
