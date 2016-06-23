@@ -417,6 +417,7 @@ module.exports.init = function(controller) {
                                         });
                                     });
                                     //Save
+                                    var event = new Event(eTitle, eDescription, eDate, eTime, eLocation, message.ts, message.channel, teamId, userId);
                                     event.mTimeStamp = message.ts;
                                     controller.storage.events.save({id: eventId, event_data: event}, function(err) {});
                                 });
@@ -535,7 +536,7 @@ module.exports.init = function(controller) {
                     bot.startConversation(message, function(err,convo) {
                         bot.say(
                             {
-                                text: 'Here attendre the are the upcoming events for your team:\n',
+                                text: 'Here are the are the upcoming events for your team:\n',
                                 channel: message.channel
                             }
                         );
@@ -812,15 +813,15 @@ module.exports.notify = function(controller, bot, teamID) {
         controller.storage.attend.get(eventId, function(err, attend_data) {
             for (var userId in attend_data.attend){
                 if (attend_data.attend[userId] == true) {
-                    //var capturedUserId = userId;
                     //Get The Actual User Id
-                    bot.api.im.open({user: userId}, function (err, response) {
+                    bot.api.im.open({user: userId, return_im: true}, function (err, response) {
                         var capturedUserId = userId;
                         if (err) {
                             return console.log(err)
                         }
-                        var dmChannel = response.channel.id;
-                        bot.say({channel: dmChannel, text: 'Hey, ' + capturedUserId + '<@' + capturedUserId + '>. ' + customMessage});
+                        var dmChannel = response.channel.id,
+                            dmUser = response.channel.user;
+                        bot.say({channel: dmChannel, text: 'Hey, ' + '<@' + dmUser + '>. ' + customMessage});
                     });
                 }
             }
