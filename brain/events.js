@@ -332,12 +332,6 @@ module.exports.init = function(controller) {
                         //Code to create and store the new event
                         var teamId = team_id;
                         controller.storage.events.all(function(err, all_team_data) {
-                            var botChannel = '#general';
-                            controller.storage.teams.get(teamId, function(err, team_data){
-                                if(team_data != null && team_data.channel != null) {
-                                    botChannel = team_data.channel;
-                                }
-                            });
                             //Botkit Method To Storage
                             if(!eventId) {
                                 //New Event Message
@@ -347,6 +341,7 @@ module.exports.init = function(controller) {
                                         "mrkdwn_in": ["text", "pretext"]
                                     }]
                                 }, function(err,response) {
+                                    var botChannel = getCommunicationChannel(controller, teamId);
                                     //Broadcast Event
                                     bot.api.chat.postMessage({
                                         "attachments": [{
@@ -391,6 +386,8 @@ module.exports.init = function(controller) {
                                         "mrkdwn_in": ["text", "pretext"]
                                     }]
                                 }, function(err,response) {
+                                    var botChannel = getCommunicationChannel(controller, teamId);
+
                                     //Broadcast Event
                                     bot.api.chat.postMessage({
                                         "attachments": [{
@@ -592,6 +589,28 @@ module.exports.init = function(controller) {
             });
         });
     };
+
+    /**
+     * This function returns the configured channel name in which the bot
+     * has to communicate with team members.
+     *
+     * @param controller The controller
+     * @param int teamId Team identifier
+     *
+     * @return string The channel name
+     */
+    var getCommunicationChannel = function (controller, teamId) {
+        var channel = '#general';
+
+        controller.storage.teams.get(teamId, function(err, team_data){
+            if(team_data != null && team_data.channel != null) {
+                channel = team_data.channel;
+            }
+        });
+
+        return channel;
+    };
+
     /* === CONTROLLERS === */
     //Conversation Controller "NEW EVENT"
     controller.hears('new event',['direct_message','direct_mention'],function(bot,message) {
