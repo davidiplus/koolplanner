@@ -1,4 +1,4 @@
-var Botkit = require('./node_modules/botkit/lib/Botkit.js');
+var Botkit = require('botkit');
 var os = require('os');
 var cron = require('node-cron');
 
@@ -20,11 +20,13 @@ beepboop.on('add_resource', function (message) {
 
 beepboop.on('botkit.rtm.started', function (bot, resource, meta) {
     var slackUserId = resource.SlackUserID;
+
     //Save The Channel Where The Bot Was Added
     controller.storage.teams.get(resource.SlackTeamID, function(err, team_data){
         team_data.channel = resource.SlackIncomingWebhookChannel;
         controller.storage.teams.save(team_data, function(err) {});
     });
+
     if (meta.isNew && slackUserId) {
         //Broadcast Message
         bot.api.chat.postMessage({
@@ -59,36 +61,16 @@ beepboop.on('botkit.rtm.started', function (bot, resource, meta) {
 //Cron Task
 cron.schedule('0 0 * * * *', function(){
     console.log('===========================CRON EXECUTED=========================');
+
     Object.keys(beepboop.workers).forEach(function (id) {
         // this is an instance of a botkit worker
         var bot = beepboop.workers[id].worker;
         var teamID = bot.config.SlackTeamID;
+
         events.notify(controller, bot, teamID);
     })
 });
 
-
-//var greetingBot = require('./brain/greetings.js');
-//greetingBot.init(controller); 
-
 var events = require('./brain/events.js');
+
 events.init(controller);
-
-function formatUptime(uptime) {
-    var unit = 'second';
-    if (uptime > 60) {
-        uptime = uptime / 60;
-        unit = 'minute';
-    }
-    if (uptime > 60) {
-        uptime = uptime / 60;
-        unit = 'hour';
-    }
-    if (uptime != 1) {
-        unit = unit + 's';
-    }
-
-    uptime = uptime + ' ' + unit;
-    return uptime;
-}
-
