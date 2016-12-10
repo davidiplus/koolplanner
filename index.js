@@ -1,4 +1,4 @@
-var Botkit = require('./node_modules/botkit/lib/Botkit.js');
+var Botkit = require('botkit');
 var os = require('os');
 var cron = require('node-cron');
 
