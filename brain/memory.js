@@ -23,41 +23,57 @@ module.exports = function (config) {
 
     return {
         teams: {
+            findBy: findBy(teamsRef),
+            findOneBy: findOneBy(teamsRef),
             get: get(teamsRef),
             save: save(teamsRef),
             all: all(teamsRef)
         },
         channels: {
+            findBy: findBy(channelsRef),
+            findOneBy: findOneBy(channelsRef),
             get: get(channelsRef),
             save: save(channelsRef),
             all: all(channelsRef)
         },
         users: {
+            findBy: findBy(usersRef),
+            findOneBy: findOneBy(usersRef),
             get: get(usersRef),
             save: save(usersRef),
             all: all(usersRef)
         },
         events: {
+            findBy: findBy(eventsRef),
+            findOneBy: findOneBy(eventsRef),
             get: get(eventsRef),
             save: save(eventsRef),
             all: all(eventsRef)
         },
         rsvp: {
+            findBy: findBy(rsvpRef),
+            findOneBy: findOneBy(rsvpRef),
             get: get(rsvpRef),
             save: save(rsvpRef),
             all: all(rsvpRef)
         },
         attend: {
+            findBy: findBy(attendRef),
+            findOneBy: findOneBy(attendRef),
             get: get(attendRef),
             save: save(attendRef),
             all: all(attendRef)
         },
         maybe: {
+            findBy: findBy(maybeRef),
+            findOneBy: findOneBy(maybeRef),
             get: get(maybeRef),
             save: save(maybeRef),
             all: all(maybeRef)
         },
         noAttend: {
+            findBy: findBy(noAttendRef),
+            findOneBy: findOneBy(noAttendRef),
             get: get(noAttendRef),
             save: save(noAttendRef),
             all: all(noAttendRef)
@@ -77,6 +93,83 @@ function get(firebaseRef) {
 
         function success(records) {
             cb(null, records.val());
+        }
+    };
+}
+
+/**
+ * This function filter the records list of result based on the query parameter.
+ *
+ * @param Object records
+ * @param Map query The query to filter records
+ * @returns {Array} The filtered list of records
+ */
+function filterResultList(records, query)
+{
+    var results = records.val();
+
+    if (!results) {
+        return [];
+    }
+
+    var list = [];
+
+    for (var key in results) {
+        var match = true;
+
+        for (var attribute in query) {
+            var value = query[attribute];
+
+            if (
+                typeof results[key] == 'undefined'
+                || (typeof results[key]['event_data'][attribute] !== 'undefined' && results[key]['event_data'][attribute] !== value)
+            ) {
+                match = false;
+            }
+        }
+
+        if (match) {
+            list.push(results[key]);
+        }
+    }
+
+    return list;
+}
+
+/**
+ * Given a firebase ref, will return a function that will search all the objects based on a query passed as parameter.
+ * This query has to be a map with attribute names as keys and filtered value as values.
+ *
+ * @param {Object} firebaseRef A reference to the firebase Object
+ * @returns {Function} The find function
+ */
+function findBy(firebaseRef) {
+    return function (query, cb) {
+        firebaseRef.once('value', success, cb);
+
+        function success(records) {
+            var list = filterResultList(records, query);
+
+            cb(list);
+        }
+    };
+}
+
+/**
+ * Given a firebase ref, will return a function that will search an object based on a query passed as parameter.
+ * This query has to be a map with attribute names as keys and filtered value as values.
+ *
+ * @param {Object} firebaseRef A reference to the firebase Object
+ * @returns {Function} The find function
+ */
+function findOneBy(firebaseRef) {
+    return function (query, cb) {
+        firebaseRef.once('value', success, cb);
+
+        function success(records) {
+            var list = filterResultList(records, query);
+
+            cb(null, list[0]);
         }
     };
 }
@@ -104,20 +197,6 @@ function save(firebaseRef) {
  */
 function all(firebaseRef) {
     return function (cb) {
-        firebaseRef.once('value', success, cb);
-
-        function success(records) {
-            var results = records.val();
-
-            if (!results) {
-                return cb(null, []);
-            }
-
-            var list = Object.keys(results).map(function (key) {
-                return results[key];
-            });
-
-            cb(null, list);
-        }
+        return findBy(firebaseRef)({}, cb);
     };
 }
