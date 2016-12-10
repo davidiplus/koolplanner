@@ -6,8 +6,7 @@ var Firebase = require('firebase');
  * @param {Object} config This must contain a `firebase_uri` property
  * @returns {{teams: {get, save, all}, channels: {get, save, all}, users: {get, save, all}}}
  */
-module.exports = function(config) {
-
+module.exports = function (config) {
     if (!config || !config.firebase_uri) {
         throw new Error('firebase_uri is required.');
     }
@@ -21,7 +20,6 @@ module.exports = function(config) {
         attendRef = rsvpRef.child('attend'),
         maybeRef = rsvpRef.child('maybe'),
         noAttendRef = rsvpRef.child('noAttend');
-
 
     return {
         teams: {
@@ -74,7 +72,7 @@ module.exports = function(config) {
  * @returns {Function} The get function
  */
 function get(firebaseRef) {
-    return function(id, cb) {
+    return function (id, cb) {
         firebaseRef.child(id).once('value', success, cb);
 
         function success(records) {
@@ -90,9 +88,10 @@ function get(firebaseRef) {
  * @returns {Function} The save function
  */
 function save(firebaseRef) {
-    return function(data, cb) {
+    return function (data, cb) {
         var firebase_update = {};
         firebase_update[data.id] = data;
+
         firebaseRef.update(firebase_update, cb);
     };
 }
@@ -104,7 +103,7 @@ function save(firebaseRef) {
  * @returns {Function} The all function
  */
 function all(firebaseRef) {
-    return function(cb) {
+    return function (cb) {
         firebaseRef.once('value', success, cb);
 
         function success(records) {
@@ -114,7 +113,7 @@ function all(firebaseRef) {
                 return cb(null, []);
             }
 
-            var list = Object.keys(results).map(function(key) {
+            var list = Object.keys(results).map(function (key) {
                 return results[key];
             });
 
