@@ -1,7 +1,7 @@
 {
-  "name": "natphil/koolplanner",
+  "name": "AXLOTbot",
   "version": "1.0.0",
-  "description": "this is the KoolPlanner bot",
+  "description": "this is the axlot botindex.js",
   "main": "index.js",
   "dependencies": {
     "beepboop-botkit": "^1.4.0",
