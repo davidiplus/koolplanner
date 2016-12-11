@@ -6,6 +6,7 @@ firebaseStorage = require('./brain/memory.js')({firebase_uri: 'https://thekoolpl
 
 var controller = Botkit.slackbot({
     debug: true,
+    interactive_replies: true,
     storage: firebaseStorage
 });
 

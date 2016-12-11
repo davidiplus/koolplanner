@@ -389,98 +389,61 @@ module.exports.init = function (controller) {
                         controller.storage.events.all(function (all_team_data) {
                             //Botkit Method To Storage
                             if (!eventId) {
-                                //New Event Message
-                                bot.reply(message, {
+                                eventId = 'event' + all_team_data.length + 1;
+                            }
+
+                            //New Event Message
+                            bot.reply(message, {
+                                "attachments": [{
+                                    "text": createdEventMsg,
+                                    "mrkdwn_in": ["text", "pretext"]
+                                }]
+                            }, function (err, response) {
+                                var botChannel = getCommunicationChannel(controller, teamId);
+
+                                //Broadcast Event
+                                bot.api.chat.postMessage({
                                     "attachments": [{
-                                        "text": createdEventMsg,
-                                        "mrkdwn_in": ["text", "pretext"]
-                                    }]
-                                }, function (err, response) {
-                                    var botChannel = getCommunicationChannel(controller, teamId);
-
-                                    //Broadcast Event
-                                    bot.api.chat.postMessage({
-                                        "attachments": [{
-                                            "fallback": 'Hey there! the user _' + userName + '_ has planned a new event: *' + eTitle + '*!\n',
-                                            "text": 'Hey there! the user _' + userName + '_ has planned a new event: *' + eTitle + '*!\n' + '_<< ' + eDescription + ' >>_\n' + 'It will take place on *' + eDate + '* at *' + eTime + '* in *' + eLocation + '*\nTo answer, click on the good emoji below.\n You may only *choose one option*.',
-                                            "mrkdwn_in": ["text", "pretext"]
-                                        }],
-                                        channel: botChannel
-                                    }, function (err, message) {
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'white_check_mark',
-                                        }, logErrorIfNeeded);
-
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'question',
-                                        }, logErrorIfNeeded);
-
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'x',
-                                        }, logErrorIfNeeded);
-
-                                        var newId = all_team_data.length + 1,
-                                            event = new Event(eTitle, eDescription, eDate, eTime, eLocation, message.ts, message.channel, teamId, userId);
-
-                                        event.mTimeStamp = message.ts;
-
-                                        controller.storage.events.save({
-                                            id: 'event' + newId,
-                                            event_data: event
-                                        }, logErrorIfNeeded);
-                                    });
-                                });
-                            } else {
-                                //Edit Event Message
-                                bot.reply(message, {
-                                    "attachments": [{
-                                        "text": createdEventMsg,
-                                        "mrkdwn_in": ["text", "pretext"]
-                                    }]
-                                }, function (err, response) {
-                                    var botChannel = getCommunicationChannel(controller, teamId);
-
-                                    //Broadcast Event
-                                    bot.api.chat.postMessage({
-                                        "attachments": [{
-                                            "fallback": 'Hey there! the user _' + userName + '_ has *edited* the event: *' + eTitle + '*!\n',
-                                            "text": 'Hey there! the user _' + userName + '_ has *edited* the event: *' + eTitle + '*!\n' + '_<< ' + eDescription + ' >>_\n' + 'It will take place on *' + eDate + '* at *' + eTime + '* in *' + eLocation + '*\nTo answer, click on the good emoji below.\n You may only *choose one option*.',
-                                            "mrkdwn_in": ["text", "pretext"]
-                                        }],
-                                        channel: botChannel
-                                    }, function (err, message) {
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'white_check_mark',
-                                        }, logErrorIfNeeded);
-
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'question',
-                                        }, logErrorIfNeeded);
-
-                                        bot.api.reactions.add({
-                                            timestamp: message.ts,
-                                            channel: message.channel,
-                                            name: 'x',
-                                        }, logErrorIfNeeded);
-                                    });
-
-                                    //Save
+                                        "callback_id": eventId,
+                                        "fallback": 'Hey there! the user _' + userName + '_ has planned a new event: *' + eTitle + '*!\n',
+                                        "text": 'Hey there! the user _' + userName + '_ has planned a new event: *' + eTitle + '*!\n' + '_<< ' + eDescription + ' >>_\n' + 'It will take place on *' + eDate + '* at *' + eTime + '* in *' + eLocation + '*\nTo answer, click on the good emoji below.\n You may only *choose one option*.',
+                                        "mrkdwn_in": ["text", "pretext"],
+                                        "attachment_type": "default",
+                                        "actions": [
+                                            {
+                                                "name": "attend",
+                                                "text": "I'm in!",
+                                                "value": "attend",
+                                                "style": "primary",
+                                                "type": "button"
+                                            },
+                                            {
+                                                "name": "maybe",
+                                                "text": "Maybe",
+                                                "value": "maybe",
+                                                "type": "button"
+                                            },
+                                            {
+                                                "name": "no",
+                                                "text": "Sorry, I can't...",
+                                                "value": "no",
+                                                "style": "danger",
+                                                "type": "button"
+                                            }
+                                        ]
+                                    }],
+                                    channel: botChannel
+                                }, function (err, message) {
                                     var event = new Event(eTitle, eDescription, eDate, eTime, eLocation, message.ts, message.channel, teamId, userId);
+
                                     event.mTimeStamp = message.ts;
 
-                                    controller.storage.events.save({id: eventId, event_data: event}, logErrorIfNeeded);
+                                    controller.storage.events.save({
+                                        id: eventId,
+                                        event_data: event
+                                    }, logErrorIfNeeded);
                                 });
-                            }
+                            });
                         });
                     });
                 } else {
@@ -875,6 +838,7 @@ module.exports.init = function (controller) {
 
     //User Reactions To Events
     controller.on('reaction_added', function (bot, message) {
+        console.log('>>>>>>>>>>>>>>>> reaction_added');
         //Look For Events With Correct Time Stamp
         controller.storage.events.all(function (all_events_data) {
             //Iterate Over All Events
@@ -891,6 +855,30 @@ module.exports.init = function (controller) {
                         noAttend(all_events_data[i].id, bot, message);
                     }
                 }
+            }
+        });
+    });
+
+    controller.on('interactive_message_callback', function(bot, message) {
+        console.log('>>>>>>>>>>>>>>>> interactive_message_callback');
+        var eventId = message.callback_id;
+        console.log('>>>>>>>>>>>>>>>> eventId : ' + eventId);
+
+        //Look For Events With Correct Time Stamp
+        controller.storage.events.get(eventId, function (event) {
+            if (typeof event === 'undefined') {
+                return;
+            }
+
+            if (message.actions[0].value=='attend') {
+                console.log('>>>>>>>>>>>>>>>> ATTEND !!!');
+                attend(eventId, bot, message);
+            } else if (message.actions[0].value=='maybe') {
+                console.log('>>>>>>>>>>>>>>>> MAYBE !!!');
+                maybe(eventId, bot, message);
+            } else if (message.actions[0].value=='no') {
+                console.log('>>>>>>>>>>>>>>>> NOOOOOOO !!!');
+                noAttend(eventId, bot, message);
             }
         });
     });
