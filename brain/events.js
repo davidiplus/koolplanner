@@ -16,7 +16,7 @@ module.exports.init = function (controller) {
     /* === FUNCTIONS === */
     //Alert Attenddes Users
     //function alertAttendees(bot, convo, customMessage, eventId) {
-    //    controller.storage.rsvp.all(function(err, all_attend_data) {
+    //    controller.storage.rsvp.all(function(all_attend_data) {
     //        var length = all_attend_data.length,
     //            attendees;
     //        //Iterate Over Event's Attenddes
@@ -386,7 +386,7 @@ module.exports.init = function (controller) {
                         //Code to create and store the new event
                         var teamId = team_id;
 
-                        controller.storage.events.all(function (err, all_team_data) {
+                        controller.storage.events.all(function (all_team_data) {
                             //Botkit Method To Storage
                             if (!eventId) {
                                 //New Event Message
@@ -397,6 +397,7 @@ module.exports.init = function (controller) {
                                     }]
                                 }, function (err, response) {
                                     var botChannel = getCommunicationChannel(controller, teamId);
+
                                     //Broadcast Event
                                     bot.api.chat.postMessage({
                                         "attachments": [{
@@ -584,7 +585,7 @@ module.exports.init = function (controller) {
                 var teamID = team_id;
 
                 //Get List Of Attenddes
-                controller.storage.events.all(function (err, all_events_data) {
+                controller.storage.events.all(function (all_events_data) {
                     //Get Today's Date
                     var date = new Date(),
                         day = date.getDate(),
@@ -875,7 +876,7 @@ module.exports.init = function (controller) {
     //User Reactions To Events
     controller.on('reaction_added', function (bot, message) {
         //Look For Events With Correct Time Stamp
-        controller.storage.events.all(function (err, all_events_data) {
+        controller.storage.events.all(function (all_events_data) {
             //Iterate Over All Events
             var length = all_events_data.length;
 
@@ -926,7 +927,7 @@ module.exports.notify = function (controller, bot, teamID) {
         today = month + '/' + day + '/' + year;
 
     /* Get all  the events from FireBase */
-    controller.storage.events.all(function (err, all_events_data) {
+    controller.storage.events.all(function (all_events_data) {
         var length = all_events_data.length,
             teamEvents = [];
 
