@@ -72,7 +72,7 @@ module.exports.init = function (controller) {
     //Attend Function
     function attend(eventId, bot, message) {
         //Check If Event Exist
-        controller.storage.events.findOneBy({'title': eventId}, function (err, event) {
+        controller.storage.events.get(eventId, function (err, event) {
             //Check Team's Id
             bot.identifyTeam(function (err, teamId) {
                 if (event != null && event.event_data.team_id == teamId) {
